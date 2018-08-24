@@ -1,0 +1,10 @@
+{
+	"//": "nice start, i now know how to comment in package.json!",
+	"name": "@tlog/commen",                 "//": "we can't miss a name :)",
+	"version": "first.one",                 "//": "oh yeah! lets add some weirdness!!!",
+	"description": "comment log, of course","//": "so... what does THAT mean?",
+	"//": "well, it would be the log in code comments!",
+	"keywords": ["tlog", "commen"],
+	"license": "MIT",
+	"//": "this's enough for the beginning. what's next??"
+}
