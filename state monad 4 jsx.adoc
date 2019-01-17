@@ -1,0 +1,296 @@
+
+
+
+
+state monad 4 jsx
+=================
+alexander betaev
+v1.0 jan 16, 2019
+
+
+
+wat?
+----
+
+see example from https://wiki.haskell.org/State_Monad[haskell]
+
+
+
+why?
+----
+
+to handle the state in functional way
+
+
+
+how?
+----
+
+
+ui continuations
+~~~~~~~~~~~~~~~~
+
+to support the following syntax
+
+
+[source,tsx]
+-------------------
+<Continuation>
+  { result => (
+    <Render>{result}</Render>
+  )}
+</Continuation>
+-------------------
+
+introducing the following toolkit
+
+[source,ts]
+-------------------
+type OneOrMoreNodes = ReactNode | ReactNode[]
+
+interface SimpleProps {
+  children: OneOrMoreNodes
+}
+
+type ContinuationChildren<T> = (value: T) => OneOrMoreNodes
+
+interface ContinuationProps<T> {
+  children: ContinuationChildren<T>
+}
+
+export interface RenderErrorProps {
+  children: ContinuationChildren<any>
+}
+-------------------
+
+
+the monad (minimal complete definition)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+CAUTION: may contain bugs and bullshit
+
+[source,tsx]
+------------
+import React from 'react'
+
+function createState<T>(value?: Promise<T>) {
+
+  interface State {
+    value?: T
+    error?: any
+    version: number
+  }
+
+  class Component<P> extends React.Component<P, State> {
+
+    componentDidMount() {
+      components.push(this)
+    }
+
+    componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+      console.log(`${error.name}: ${JSON.stringify(errorInfo)}`)
+      this.setState({ error })
+    }
+
+    componentWillUnmount() {
+      components = components.filter(component => component !== this)
+    }
+
+  }
+
+  let components: Component<any>[] = []
+
+  let latestValue: Promise<T> | undefined
+
+  let version = -1
+
+  const update = async (valuePromise: Promise<T> | undefined) => {
+    latestValue = valuePromise
+    version = version + 1
+    try {
+      let value = await valuePromise
+      components.forEach(component => component.setState({ value, version }))
+    } catch (error) {
+      components.forEach(component => component.setState({ error, version }))
+    }
+  }
+
+  update(value)
+
+  return {
+    Initial: class extends Component<SimpleProps> {
+      render() {
+        if (!this.state) {
+          return this.props.children
+        } else {
+          return null
+        }
+      }
+    },
+    Empty: class extends Component<SimpleProps> {
+      render() {
+        if (this.state && !(this.state.value || this.state.error)) {
+          return this.props.children
+        } else {
+          return null
+        }
+      }
+    },
+    ValueAbsent: class extends Component<SimpleProps> {
+      render() {
+        if (this.state && !this.state.value) {
+          return this.props.children
+        } else {
+          return null
+        }
+      }
+    },
+    ValuePresent: class extends Component<ContinuationProps<T>> {
+      render() {
+        if (this.state && this.state.value) {
+          return this.props.children
+        } else {
+          return null
+        }
+      }
+    },
+    WithValue: class extends Component<ContinuationProps<T>> {
+      render() {
+        if (this.state && this.state.value) {
+          return this.props.children(this.state.value)
+        } else {
+          return null
+        }
+      }
+    },
+    ErrorAbsent: class extends Component<SimpleProps> {
+      render() {
+        if (this.state && !this.state.error) {
+          return this.props.children
+        } else {
+          return null
+        }
+      }
+    },
+    ErrorPresent: class extends Component<SimpleProps> {
+      render() {
+        if (this.state && this.state.error) {
+          return this.props.children
+        } else {
+          return null
+        }
+      }
+    },
+    WithError: class extends Component<ContinuationProps<any>> {
+      render() {
+        if (this.state && this.state.error) {
+          return this.props.children(this.state.error)
+        } else {
+          return null
+        }
+      }
+    },
+    set: (value: Promise<T>) => update(value),
+    refresh: () => update(latestValue),
+    latestValue: () => latestValue || Promise.reject()
+  }
+
+}
+------------
+
+
+generic use case
+~~~~~~~~~~~~~~~~
+
+[source,tsx]
+------------
+
+interface StateObject {
+  property1: boolean
+  property2: string
+/*        ...        */
+  propertyN: number
+}
+
+let state = createState<StateObject>(fetch(url)/* or any other [a]sync operation */)
+
+
+/* ... */
+
+
+let dom = (
+<Fragment>
+  <state.Initial>
+    <p> rendered when operation is not yet completed </p>
+    <ul>
+      <li> <Loading/> </li>
+    </ul>
+  </state.Initial>
+  <state.Empty>
+    <p> rendered when operation was completed but neither error nor state are defined </p>
+    <ul>
+      <li> <Updating/> (requires emptying state before setting new value) </li>
+    </ul>
+  </state.Empty>
+  <state.ValueAbsent>
+    <p> rendered if value is not defined </p>
+    <ul>
+      <li> <Button onClick='retry()' content='Retry'/> </li>
+    </ul>
+  </state.ValueAbsent>
+  <state.ValuePresent>
+    <p> rendered if value is defined </p>
+    <ul>
+      <li> <Ready/> </li>
+      <li> display data related static element </li>
+    </ul>
+  </state.ValuePresent>
+  <state.withValue>
+    { ( value : StateObject ) => (
+      <p> rendered if value is defined </p>
+      <ul>
+        <li> <Render content={value}/> </li>
+      </ul>
+    ) }
+  </state.withValue>
+  <state.ErrorAbsent>
+    <p> rendered is everything is fine </p>
+    <ul>
+      <li> as gate for successfull rendering (inside other state element) </li>
+    </ul>
+    <state.ValuePresent>
+      <p> enforces all errors to hide content even if present </p>
+    </state.ValuePresent>
+  </state.ErrorAbsent>
+  <state.ErrorPresent>
+    <p> rendered if error was caught or occurred during async operation </p>
+    <ul>
+      <li> inform user about error </li>
+      <li> display retry trigger </li>
+    </ul>
+    <state.ValuePresent>
+      <Button onClick='hideErrorMessage()' content='Hide'/>
+    </state.ValuePresent>
+  </state.ErrorPresent>
+  <state.WithError>
+    { ( error : any ) => (
+      <p> rendeed if error was caught or occurred during async operation </p>
+      <ul>
+        <li> explain issue </li>
+	<li> visual debug </li>
+      </ul>
+    ) }
+  </state.WithError>
+</Fragment>
+)
+
+/* ... */
+
+
+state.set(fetch(anotherUrl)) // will fetch new value and update all <state.*/>
+state.refresh() // will just update all <state.*/> elements
+state.latestValue() // latest value accessor (may be made synchronous, i believe)
+
+------------
+
+have fun!
