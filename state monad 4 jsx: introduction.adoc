@@ -1,0 +1,237 @@
+
+
+
+
+state monad 4 jsx: the introduction
+===================================
+alexander betaev
+v1.0 jan 17, 2019
+
+
+
+CAUTION: you may skip all this boring snot chewing by
+going directly to the 
+https://github.com/abetaev/tlog/blob/master/state%20monad%204%20jsx.adoc[real article].
+
+CAUTION: you always have both ways to go. *i would strongly recommend both
+before its late!*
+
+
+part I: greetings!
+------------------
+
+hi!
+
+my name is `alexander betaev`. take it as is for immutable and constant.
+i beg your pardon in advance for issues you will find in my codez, but i
+take no responsibility for them and recommend such a way for everyone.
+
+i have just recently started to be interested in javascript (and all that
+fairly legacy world). that's why i may have slightly different and
+sometimes pretty interesting in comparison with others opinion. no wonders!
+
+i think i have already noted somewhere that my belief is that react,
+typescript and jsx make the bundle of technologies which is somehow
+compatible with sanity and are capable to make crispy thin crust pizza out
+of
+https://github.com/abetaev/tlog/blob/state-monad-4-jsx/how%20to%20make%20loops%20in%20js.rst#js[javascript].
+*almost* right out of the box!..
+
+probably the fact that such technology bundle became real affected my
+interest in all of these sh... you know.
+
+this is _the introduction_ to +ui+ part of my adventure in world of
+[.line-through]#shitty shit# javascript. in this article i describe the
+only abstraction which solved all those *``almost''* issues of +ui+ tech
+bundle. but first of all the reader is assumed to feel my frustration.
+
+
+
+part II: almost...
+------------------
+
+
+
+the design
+~~~~~~~~~~
+
+imagine you are designing some kind of +ui+. how would you decompose it?
+
+the design i came up with to was having components which consist of other
+components which consist of other components which consist of just
+primitive components. so i introduced the four layers model:
+
+1. site
+2. ui
+3. com__(ponent)__
+4. core
+
+it may be really hard to explain why i decided to choose these layers,
+why design is layered at all and how i have come to all this, but the
+following pseudo-picture i hope would explain the idea itself:
+
+.structure
+-----------------------------------
+              [site](1)
+             /  |   \
+[domain 1 ui](*)|   [domain 2 ui](*)
+             \  |  /
+              \ | /
+               \|/
+                x  
+               / \
+              /   \
+             /     \
+[domain 1 com](*)---[domain 2 com](*)
+             \     /
+             [core]
+
+-----------------------------------
+
+the example
+~~~~~~~~~~~
+
+lets say, you are creating single-page blog application.
+
+i would decompose such application ui onto the following domains:
+
+1. _navigation_ (inherent part of any application which provides data)
+2. _profile_ (if blog is public and multi-user)
+3. _blog_ (itself of course it's just a single domain!)
+
+so _navigation_ would not have its own ui. but it will provide several
+com__(ponent)__s to other domains and site overall to render navigation.
+
+_profile_ domain will work with security microservice and provide
+com__(ponent)__s which help to display information for authorized users.
+additionally it will have its own +ui+ which will provide at least the
+following features:
+
+* register
+* login
+
+one would add
+
+* logout
+
+but that would be really nice of me, you know...
+
+_blog_ domain will definitely use some com__(ponent)__s from _profile_
+and will have two ++ui++s (`feed' and `post'). both these ++ui++s need
+a com__(ponent)__ from _profile_ domain which will help to render parts
+allowed only for authenticated and authorized (in some way) users.
+
+.i imagined it like this:
+[source,tsx]
+------------
+import profCom from './profile-com'
+
+const BlogPost = ({ url }: { url: string }) => {
+
+  const article = new State<ArticleData>(fetchArticle(url))
+  const comments = new State<CommentsData>(fetchComments(url))
+
+  function Authorized<T>(props: {children: ContinuationChildren<T>}) => {
+      <profCom.WithAuthentication>
+      {(authentication) => {
+        if (authentication.roles.filter(role => role === 'AUTHOR').length > 0) {
+          return props.children()
+        }
+      }}
+      </profCom.WithAuthentication>
+  }
+
+  let comment
+
+  return (
+    <Fragment>
+      <article.WithValue>
+        {(articleData: ArticleData) => (
+          <Header>{articleData.title}</Header>
+          <TOC article={articleData} />
+          <Article>{articleData.body}</Article>
+        )}
+      </article.WithValue>
+      <article.ErrorPresent>
+        <Header>err.. ror!! article probably even does not exists..</Header>
+        <Paragraph>.. but you may continue to keep trying...</Paragraph>
+      </article.ErrorAbsent>
+      <profCom.WithAuthentication>
+        {profile => (
+          <Fragment>
+            <AuthorizedToEdit>
+              <Button as={Link} to='./edit'>edit</Button>
+            </AuthorizedToEdit>
+            <Input name='comment'
+                   type='text'
+                   placeholder={`Leave comment as ${profile.name}`}
+                   onChange={target => comment = target.value} />
+            <Button onClick={comments.submit(comment, article)} />
+          </Fragment>
+        )}
+      </profCom.WithAuthentication>
+      <profCom.Anonymous>
+        <Message> please login to leave a comment </Message>
+      </profCom.Anonymous>
+      <comments.WithValue>
+        {commentsData => (<Comments data={commentsData}/>)}
+      </comments.WithValue>
+    </Fragment>
+  )
+}
+------------
+i have omitted some details, please forgive me for not being concrete
+completely;and i promiss i never will! BUT the one very important detail
+which is impossible to show in markup is worth mentioning: *when comment
+is added after clicking to submit button, all tags
++<components.WithValue/>+ present in DOM tree are rerendered with new list
+of comments.*
+
+
+the problem
+~~~~~~~~~~~
+
+after mocking up the concept i decided to look for tools which provide
+clean and simple way to weave state into declarative structure of XML-like
+JSX code.
+
+don't get it wrong, i found something:
+
+* https://github.com/jamiebuilds/react-loadable[react-loadable]
+* https://github.com/ghengeveld/react-async[react-async]
+
+but whathever i have found was somehow not generic enough. with a closer
+look, i found that authors were trying to solve smaller problem,
+introducing solution for just few real-world use case.
+
+redux? no, fuck redux! it's overkill for such a simple task. and
+personally i don't feel it as good piece of tech. sorry mi ;)
+
+so i decided to create my own solution for the problem and put it into
+core group of components.
+
+
+
+part III: extraduction.
+-----------------------
+
+https://github.com/abetaev/tlog/blob/master/state%20monad%204%20jsx.adoc[the
+article], introduction to which contains this text, describes the tool
+which generalizes solution of the *state weaving into markup* problem.
+even though the tool itself is also very simple i find it to be extremely
+powerful and productive.
+
+the reader is assumed to have:
+
+* good understanding of the following tech:
+** https://www.typescriptlang.org/[TypeScript]
+** https://www.typescriptlang.org/[React]
+** https://reactjs.org/docs/introducing-jsx.html[JSX]
+** https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise[Promise API]
+* ability to look at things from different angles (abstraction)
+* a bunch of skepticism to say that whatever i made is shit
+
+
+
+*p.s.* i am wondering when all those hipsters around will understand that
+yml is much way better as markup than xml **4 jsx**...

@@ -5,7 +5,7 @@
 state monad 4 jsx
 =================
 alexander betaev
-v1.0 jan 16, 2019
+v1.1 jan 17, 2019
 
 
 
@@ -254,7 +254,7 @@ let dom = (
     ) }
   </state.withValue>
   <state.ErrorAbsent>
-    <p> rendered is everything is fine </p>
+    <p> rendered until everything is... fine? :) </p>
     <ul>
       <li> as gate for successfull rendering (inside other state element) </li>
     </ul>
@@ -277,7 +277,7 @@ let dom = (
       <p> rendeed if error was caught or occurred during async operation </p>
       <ul>
         <li> explain issue </li>
-	<li> visual debug </li>
+	      <li> visual debug </li>
       </ul>
     ) }
   </state.WithError>
