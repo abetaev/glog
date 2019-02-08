@@ -1,10 +1,16 @@
 {
-	"//": "nice start, i now know how to comment in package.json!",
-	"name": "@tlog/commen",                 "//": "we can't miss a name :)",
-	"version": "first.one",                 "//": "oh yeah! lets add some weirdness!!!",
-	"description": "comment log, of course","//": "so... what does THAT mean?",
-	"//": "well, it would be the log in code comments!",
+	"name": "@tlog/commen",                 "//": "/some comments will just go away/",
+	"version": "1.1.0",                     "//": "-weirdness does not work with real world-",
+	"description": "comment log, of course","//": "/some will be replaced with new ones/",
 	"keywords": ["tlog", "commen"],
 	"license": "MIT",
-	"//": "this's enough for the beginning. what's next??"
+	"//": "/but others will remain for some more time because they are really helpful/",
+	"scripts": {
+		"//": "*here is the explanation:*",
+		"explain": "node -e 'require(\"opn\")(\"explain.html\")'"
+	},
+	"//" : "lets ask these guys to help:",
+	"dependencies": {
+		"opn": "^5.4.0"
+	}
 }
