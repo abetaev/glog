@@ -1,15 +1,17 @@
 {
-	"name": "@tlog/commen",                 "//": "/some comments will just go away/",
-	"version": "1.1.0",                     "//": "-weirdness does not work with real world-",
-	"description": "comment log, of course","//": "/some will be replaced with new ones/",
-	"keywords": ["tlog", "commen"],
+	"//": "-unfortunately npm is too \"smart\" to keep more than one comment per section-",
+	"name": "@tlog/commen",
+	"version": "1.1.1",
+	"description": "comment log, of course",
+	"keywords": [
+		"tlog",
+		"commen"
+	],
 	"license": "MIT",
-	"//": "/but others will remain for some more time because they are really helpful/",
 	"scripts": {
 		"//": "*here is the explanation:*",
 		"explain": "node -e 'require(\"opn\")(\"explain.html\")'"
 	},
-	"//" : "lets ask these guys to help:",
 	"dependencies": {
 		"opn": "^5.4.0"
 	}
