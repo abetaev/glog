@@ -1,0 +1,2 @@
+# let's not store "all the internet" in single git repo:
+/node_modules/
