@@ -9,10 +9,14 @@
 	],
 	"license": "MIT",
 	"scripts": {
-		"//": "*here is the explanation:*",
-		"explain": "node -e 'require(\"opn\")(\"explain.html\")'"
+		"//": "... if we in \"package.json\" we expect `node` to be...",
+		"start": "node start.js"
 	},
 	"dependencies": {
 		"opn": "^5.4.0"
+	},
+	"devDependencies": {
+		"//": "UX RULE: zero-configuration",
+		"parcel": "^1.12.1"
 	}
 }

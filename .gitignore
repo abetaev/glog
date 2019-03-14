@@ -1,2 +1,6 @@
 # not to store "all the internet" in single git repo:
 /node_modules/
+# dist is default build directory
+/dist/
+# bundler cache directory
+/.cache/
